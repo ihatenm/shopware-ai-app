@@ -1,0 +1,1464 @@
+= SPEC-001: AI-Powered Product Optimization and Completion Tool for Shopware
+:sectnums:
+:toc:
+
+== Background
+E-commerce platforms face challenges in maintaining high-quality and complete product listings. Suboptimal titles, descriptions, pricing inconsistencies, and missing product metadata often lead to poor customer experiences and reduced sales.
+
+Shopware, a robust open-source e-commerce platform, provides APIs that facilitate product management and data retrieval. Leveraging these APIs, this project aims to integrate AI capabilities to optimize product listings and assist merchants by auto-completing missing data fields, thereby improving efficiency and enhancing the shopping experience.
+
+This tool will cater to merchants who use Shopware, enabling them to streamline operations, improve product discoverability, and make data-driven decisions through AI-powered suggestions.
+
+== Requirements
+This section outlines the requirements for building the AI-powered product optimization and completion tool, categorized using the MoSCoW framework:
+
+=== Must-Have
+* Integrate with the Shopware API for retrieving and updating product data.
+* AI-powered product optimization:
+** Suggest improvements for product titles, descriptions, and tags.
+** Auto-generate missing product details such as descriptions or specifications.
+* Product data completion:
+** Detect and fill missing fields (e.g., images, categories, keywords).
+** Validate data consistency across product listings.
+* Dashboard for merchants to view, edit, and approve AI suggestions.
+* User authentication and role-based access control (RBAC) for merchants.
+* Secondary database (PostgreSQL) to store enriched product data and track changes.
+
+=== Should-Have
+* AI-driven price recommendations based on historical sales and market trends.
+* Batch processing for optimizing multiple products simultaneously.
+* Integration with third-party analytics tools for additional insights.
+
+=== Could-Have
+* Real-time notifications for merchants about optimization opportunities.
+* Support for multiple languages in AI-generated content.
+* Export enriched product data in CSV or JSON formats.
+
+=== Won’t-Have
+* Direct integration with payment or shipping systems (not relevant to optimization).
+* Offline functionality, as the tool heavily depends on the Shopware API and cloud resources.
+
+== Method
+The AI-powered product optimization and completion tool will use a modular architecture to ensure scalability and maintainability. The key components include the frontend, backend, AI engine, and integration with the Shopware API.
+
+=== System Architecture
+[plantuml]
+....
+@startuml
+actor Merchant
+participant "Frontend (React/TypeScript)" as Frontend
+participant "Backend (Node.js/TypeScript)" as Backend
+participant "Shopware API" as Shopware
+participant "AI Engine (OpenAI/GPT)" as AI
+database "PostgreSQL" as DB
+Merchant -> Frontend: Interacts with Dashboard
+Frontend -> Backend: API Requests
+Backend -> Shopware: Fetch/Update Product Data
+Backend -> AI: Send data for optimization
+AI -> Backend: Return AI-generated suggestions
+Backend -> DB: Store enriched data
+Frontend -> Backend: Requests enriched product data
+Backend -> Frontend: Returns optimized data
+@enduml
+....
+
+=== AI Approach
+The AI component will perform two main tasks:
+
+==== Product Optimization
+* Use a pre-trained language model (e.g., OpenAI GPT or equivalent) fine-tuned for e-commerce content to suggest better product titles, descriptions, and tags.
+* Validate keywords based on search trends or user-specified priorities.
+
+==== Product Completion
+* Detect missing fields (e.g., images, categories, specifications) using a rule-based system and potentially AI models trained for data imputation.
+* Use AI to auto-generate missing data (e.g., generate descriptions based on existing metadata, suggest relevant categories).
+
+=== Data Flow
+
+==== Data Retrieval
+Fetch product data from the Shopware API, including metadata, titles, descriptions, and pricing.
+
+==== Data Processing
+AI engine analyzes the product data and identifies fields for improvement or completion.
+
+==== Data Presentation
+Processed data and AI suggestions are displayed on the merchant dashboard.
+
+==== Data Update
+Upon approval, updated data is sent back to the Shopware API and logged in the PostgreSQL database.
+
+=== Database Schema
+A PostgreSQL database will track enriched data and activity logs. Sample schema:
+
+[source,sql]
+----
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    shopware_id INT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    description TEXT,
+    tags TEXT[],
+    price DECIMAL(10, 2),
+    category TEXT,
+    images JSONB,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE activity_logs (
+    id SERIAL PRIMARY KEY,
+    product_id INT REFERENCES products(id),
+    action TEXT NOT NULL,
+    user_id INT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+----
+Use code with caution.
+
+=== AI Model Integration
+
+==== Input
+JSON object containing product data (title, description, tags, etc.).
+
+[source,json]
+----
+{
+    "title": "Wireless Earbuds",
+    "description": "",
+    "tags": ["audio", "electronics"],
+    "price": 49.99,
+    "category": "Accessories"
+}
+----
+Use code with caution.
+
+==== Processing
+AI generates content using pre-trained models fine-tuned for e-commerce data.
+
+==== Output
+AI-enhanced product data, including new or updated fields.
+
+[source,json]
+----
+{
+    "title": "Premium Wireless Earbuds with Noise Cancellation",
+    "description": "Experience crystal-clear sound and all-day comfort with our premium wireless earbuds featuring advanced noise cancellation technology. Perfect for music lovers, commuters, and anyone on the go.",
+    "tags": ["audio", "electronics", "wireless", "noise cancelling", "earphones"],
+    "price": 49.99,
+    "category": "Audio & Headphones"
+}
+----
+Use code with caution.
+
+=== Component Overview
+
+==== Frontend
+** Framework: React (with TypeScript).
+** Key Pages: Login, Dashboard, Product Optimization, Activity Log.
+** Libraries: Axios for API calls, Material-UI (or Tailwind CSS, Ant Design) for design, React Router for navigation, Redux or Zustand for state management.
+
+==== Backend
+** Framework: Node.js with Express (with TypeScript).
+** Responsibilities: API integration, AI request routing, database management, user authentication and authorization.
+** Libraries: express, pg (or an ORM like TypeORM or Prisma), node-fetch or axios for Shopware API calls, jsonwebtoken for JWT authentication, dotenv for environment variables, openai (or equivalent).
+
+==== AI Engine
+** Hosted service: OpenAI API or custom Hugging Face model.
+** Task: Content generation and data validation.
+
+==== Database
+** PostgreSQL: Stores enriched product data and logs for auditability.
+
+==== Integration
+** Shopware API: REST API client library or direct HTTP requests.
+
+== Implementation
+This section outlines the implementation steps for building the AI-powered product optimization and completion tool.
+
+=== Development Requirements
+This section lists the tools, technologies, and dependencies required for the development of the AI-powered product optimization and completion tool.
+
+==== Core Technologies
+
+===== Frontend
+* React: For building the user interface.
+* TypeScript: For type safety and improved code maintainability.
+* Axios: For making API calls to the backend.
+* Material-UI (or Tailwind CSS, Ant Design): For responsive and styled components.
+* React Router: For client-side routing and navigation.
+* Redux or Zustand: For managing application state.
+
+===== Backend
+* Node.js: Backend runtime environment.
+* TypeScript: For type safety and improved code maintainability.
+* Express.js: Framework for building RESTful APIs.
+* PostgreSQL: Relational database for storing enriched product data and logs.
+* TypeORM or Prisma: ORM for simplifying database interactions (optional but recommended).
+* Node-fetch or Axios: For interacting with the Shopware platform's API.
+* JSON Web Tokens (JWT): For user authentication and authorization.
+* Dotenv: For managing environment variables.
+* OpenAI GPT or Hugging Face Transformers: For text generation and data enhancement tasks.
+
+===== AI Engine
+* Python (if hosting a custom AI model locally or for pre/post-processing).
+
+==== Development Tools
+
+===== Code Editor
+* Visual Studio Code (VS Code) with extensions for React, Node.js, TypeScript, and PostgreSQL.
+
+===== Version Control
+* Git: For version control and collaboration.
+* GitHub or GitLab: For repository hosting.
+
+===== Containerization and Orchestration
+* Docker: For containerizing frontend, backend, and database.
+* Docker Compose: For managing multiple containers during development.
+
+===== Testing
+* Jest: For unit testing React components and backend logic.
+* React Testing Library: For testing React components.
+* Cypress or Playwright: For end-to-end testing of the application.
+* Supertest: For testing backend APIs.
+
+==== Required Dependencies
+
+===== Frontend Dependencies
+* React: `react`, `react-dom`.
+* TypeScript: `typescript`, `@types/react`, `@types/react-dom`.
+* Axios: `axios`.
+* Material-UI: `@mui/material` `@emotion/react` `@emotion/styled` (or alternatives).
+* React Router: `react-router-dom`, `@types/react-router-dom`.
+* State Management (Redux/Zustand): `redux`, `react-redux`, `@reduxjs/toolkit` or `zustand`.
+
+===== Backend Dependencies
+Node.js dependencies (managed via npm or yarn):
+* Express.js: `express`, `@types/express`.
+* PostgreSQL Driver: `pg`.
+* TypeORM or Prisma (if using): `typeorm`, `pg` (for TypeORM) or `@prisma/client`, `prisma` (for Prisma).
+* Node-fetch or Axios: `node-fetch` or `axios`.
+* JSON Web Tokens (JWT): `jsonwebtoken`.
+* Dotenv: `dotenv`.
+* OpenAI Integration: `openai`.
+* CORS Middleware: `cors`.
+
+===== AI Model Dependencies (if hosting locally)
+Python Libraries (managed via pip): `transformers`, `torch`, `numpy`, `pandas`.
+
+==== Cloud Services
+
+===== Hosting
+* Frontend: Netlify, Vercel, AWS S3 with CloudFront.
+* Backend: AWS EC2, Heroku, Google Cloud Run, AWS Lambda (with API Gateway).
+* PostgreSQL: Managed services like AWS RDS, Supabase, or ElephantSQL, or self-hosted on a cloud VM.
+
+===== AI Hosting
+* OpenAI API: For GPT integration.
+* Hugging Face Inference API (if using pre-trained hosted models).
+* AWS SageMaker, Google Cloud AI Platform, or similar for hosting custom models.
+
+==== Development Environment
+
+===== Node.js Version
+v18 or later (ensure compatibility with dependencies).
+
+===== Database
+PostgreSQL 14 or later.
+
+===== Python Version
+3.9+ (for AI-related tasks if hosting locally).
+
+===== Browser Compatibility
+Latest versions of Chrome, Firefox, Safari, and Edge.
+
+=== Step 1: Environment Setup
+
+==== Initialize Backend Project (Node.js with TypeScript)
+[source,bash]
+----
+mkdir shopware-ai-tool-backend
+cd shopware-ai-tool-backend
+npm init -y
+npm install typescript ts-node @types/node --save-dev
+npx tsc --init --rootDir src --outDir dist --esModuleInterop --resolveJsonModule --lib es6,es2017.object,es7,es2019.array --moduleResolution node
+mkdir src
+touch src/index.ts
+----
+Use code with caution.
+
+==== Update tsconfig.json as needed
+Install Backend Dependencies:
+[source,bash]
+----
+npm install express @types/express pg typeorm reflect-metadata node-fetch jsonwebtoken dotenv cors
+----
+Use code with caution.
+
+==== If using Prisma
+[source,bash]
+----
+npm install @prisma/client prisma --save-dev && npx prisma init --datasource-provider postgresql
+----
+
+==== Initialize Frontend Project (React with TypeScript)
+[source,bash]
+----
+npx create-react-app shopware-ai-tool-frontend --template typescript
+cd shopware-ai-tool-frontend
+npm install axios @mui/material @emotion/react @emotion/styled react-router-dom
+# Optionally install state management:
+npm install redux react-redux @reduxjs/toolkit
+# Or for Zustand:
+npm install zustand
+----
+Use code with caution.
+
+==== Set up PostgreSQL Database
+* Install PostgreSQL locally or use a cloud service.
+* Create the `products` and `activity_logs` tables using the provided schema.
+
+==== Configure Shopware API Access
+* Obtain API credentials (client ID, client secret, API endpoint) from your Shopware instance.
+* Create a `.env` file in the backend root to store these credentials securely:
++
+[source,env]
+----
+SHOPWARE_API_URL=https://your-shopware-domain.com/api
+SHOPWARE_CLIENT_ID=your_client_id
+SHOPWARE_CLIENT_SECRET=your_client_secret
+POSTGRES_USER=your_postgres_user
+POSTGRES_PASSWORD=your_postgres_password
+POSTGRES_DB=shopware_ai_db
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+OPENAI_API_KEY=your_openai_api_key
+JWT_SECRET=your_jwt_secret_key
+----
+Use code with caution.
+
+=== Step 2: Integration with Shopware API
+
+==== Backend: Create a Shopware API Service
+Create a file `src/services/shopware.service.ts`:
+[source,typescript]
+----
+import fetch from 'node-fetch';
+import { config } from 'dotenv';
+config();
+
+const API_URL = process.env.SHOPWARE_API_URL;
+const CLIENT_ID = process.env.SHOPWARE_CLIENT_ID;
+const CLIENT_SECRET = process.env.SHOPWARE_CLIENT_SECRET;
+
+async function getAccessToken(): Promise<string> {
+  const params = new URLSearchParams();
+  params.append('grant_type', 'client_credentials');
+  params.append('client_id', CLIENT_ID || '');
+  params.append('client_secret', CLIENT_SECRET || '');
+
+  const response = await fetch(`${API_URL}/oauth/token`, {
+    method: 'POST',
+    body: params,
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(`Failed to get access token: ${data.errors?.[0]?.detail || response.statusText}`);
+  }
+  return data.access_token;
+}
+
+export async function fetchProducts(): Promise<any[]> {
+  const accessToken = await getAccessToken();
+  const response = await fetch(`${API_URL}/product?associations[media]=true&associations[categories]=true`, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'sw-access-key': CLIENT_ID || '', // Some Shopware APIs might require this
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Failed to fetch products: ${errorData.errors?.[0]?.detail || response.statusText}`);
+  }
+  const data = await response.json();
+  return data.data;
+}
+
+export async function updateProduct(productId: string, payload: any): Promise<any> {
+  const accessToken = await getAccessToken();
+  const response = await fetch(`${API_URL}/product/${productId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'sw-access-key': CLIENT_ID || '',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Failed to update product ${productId}: ${errorData.errors?.[0]?.detail || response.statusText}`);
+  }
+  return await response.json();
+}
+----
+Use code with caution.
+
+==== Backend: Implement API Endpoints
+In `src/index.ts` (or your main backend file):
+[source,typescript]
+----
+import express from 'express';
+import cors from 'cors';
+import { config } from 'dotenv';
+import { fetchProducts } from './services/shopware.service'; // Import Shopware service functions
+
+config();
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await fetchProducts();
+    res.json(products);
+  } catch (error: any) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ... other API endpoints will be added here ...
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+----
+Use code with caution.
+
+==== Frontend: Fetch Data from Backend
+In your React components (e.g., `Dashboard.tsx`):
+[source,typescript]
+----
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+interface Product {
+  id: string;
+  name: string;
+  // ... other product properties
+}
+
+const Dashboard: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get('/api/products');
+        setProducts(response.data);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  return (
+    <div>
+      <h1>Product Dashboard</h1>
+      <ul>
+        {products.map(product => (
+          <li key={product.id}>{product.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default Dashboard;
+----
+Use code with caution.
+
+=== Step 3: AI Integration
+
+==== Backend: Integrate with OpenAI API
+* Install the OpenAI SDK: `npm install openai`
+* Create a service for AI interactions (`src/services/ai.service.ts`):
++
+[source,typescript]
+----
+import OpenAI from 'openai';
+import { config } from 'dotenv';
+config();
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function optimizeProductDescription(title: string, existingDescription?: string): Promise<string | null> {
+  try {
+    const prompt = `Improve the product description for a product titled "${title}". ${existingDescription ? `The current description is: "${existingDescription}".` : "Generate a compelling description."}`;
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo", // Or your preferred model
+      messages: [{ role: "user", content: prompt }],
+    });
+    return completion.choices[0].message.content;
+  } catch (error) {
+    console.error("Error optimizing description:", error);
+    return null;
+  }
+}
+
+// Implement similar functions for title and tag optimization
+----
+Use code with caution.
+
+==== Backend: Create API Endpoint for Optimization
+In your backend routes (`src/routes/product.routes.ts` or within `src/index.ts`):
+[source,typescript]
+----
+// ... imports ...
+import express from 'express';
+const router = express.Router();
+import { optimizeProductDescription } from '../services/ai.service';
+
+// ... app setup ...
+
+router.post('/optimize', async (req, res) => {
+  const { title, description } = req.body;
+  if (!title) {
+    return res.status(400).json({ message: "Product title is required." });
+  }
+  try {
+    const optimizedDescription = await optimizeProductDescription(title, description);
+    res.json({ optimizedDescription });
+  } catch (error: any) {
+    console.error("Error during optimization:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+export default router;
+----
+And in `src/index.ts`:
+[source,typescript]
+----
+// ... other imports
+import productRoutes from './routes/product.routes';
+
+// ... app setup
+app.use('/api/products', productRoutes);
+----
+Use code with caution.
+
+==== Frontend: Call the Optimization API
+In your React components (e.g., `ProductOptimization.tsx`):
+[source,typescript]
+----
+import React, { useState } from 'react';
+import axios from 'axios';
+
+interface OptimizationResponse {
+  optimizedDescription: string;
+}
+
+const ProductOptimization: React.FC = () => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [optimizedDescription, setOptimizedDescription] = useState<string | null>(null);
+
+  const handleOptimize = async () => {
+    try {
+      const response = await axios.post<OptimizationResponse>('/api/products/optimize', { title, description });
+      setOptimizedDescription(response.data.optimizedDescription);
+    } catch (error) {
+      console.error("Error optimizing product:", error);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Optimize Product</h2>
+      <input type="text" placeholder="Product Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <textarea placeholder="Current Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+      <button onClick={handleOptimize}>Get Optimized Description</button>
+      {optimizedDescription && <p>Optimized Description: {optimizedDescription}</p>}
+    </div>
+  );
+};
+
+export default ProductOptimization;
+----
+Use code with caution.
+
+=== Step 4: Backend Development (Database, Authentication, Core Logic)
+
+==== Database Integration (TypeORM or Prisma)
+
+===== TypeORM
+* Install TypeORM CLI: `npm install -g typeorm`
+* Initialize TypeORM: `npx typeorm init --database postgres`
+* Define entities (`src/entities/product.entity.ts`, `src/entities/activity-log.entity.ts`):
++
+[source,typescript]
+----
+// src/entities/product.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+
+@Entity({ name: 'products' })
+export class Product {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ unique: true })
+  shopwareId!: number;
+
+  @Column()
+  title!: string;
+
+  @Column({ nullable: true })
+  description?: string;
+
+  @Column('text', { array: true, nullable: true })
+  tags?: string[];
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price?: number;
+
+  @Column({ nullable: true })
+  category?: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  images?: any;
+
+  @CreateDateColumn()
+  updatedAt?: Date;
+}
+
+// src/entities/activity-log.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Product } from './product.entity';
+
+@Entity({ name: 'activity_logs' })
+export class ActivityLog {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @ManyToOne(() => Product, product => product.id)
+  @JoinColumn({ name: 'product_id' })
+  productId!: number;
+
+  @Column()
+  action!: string;
+
+  @Column({ nullable: true })
+  userId?: number;
+
+  @CreateDateColumn()
+  timestamp!: Date;
+}
+----
+Use code with caution.
+* Configure database connection in `src/data-source.ts`:
++
+[source,typescript]
+----
+import "reflect-metadata";
+import { DataSource } from "typeorm";
+import { Product } from "./entities/product.entity";
+import { ActivityLog } from "./entities/activity-log.entity";
+import { config } from 'dotenv';
+config();
+
+export const AppDataSource = new DataSource({
+    type: "postgres",
+    host: process.env.POSTGRES_HOST,
+    port: parseInt(process.env.POSTGRES_PORT || '5432'),
+    username: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DB,
+    synchronize: process.env.NODE_ENV === "development", // Auto-schema sync in dev
+    logging: false,
+    entities: [Product, ActivityLog],
+    migrations: [],
+    subscribers: [],
+});
+----
+Use code with caution.
+* Connect to the database in your main backend file (`src/index.ts`):
++
+[source,typescript]
+----
+import { AppDataSource } from './data-source';
+
+AppDataSource.initialize()
+    .then(() => {
+        console.log("Data Source has been initialized!");
+    })
+    .catch((err) => {
+        console.error("Error during Data Source initialization:", err);
+    });
+----
+Use code with caution.
+* Create repositories (`src/repositories/product.repository.ts`, `src/repositories/activity-log.repository.ts`).
+
+===== Prisma
+* Install Prisma CLI: `npm install prisma --save-dev`
+* Initialize Prisma: `npx prisma init --datasource-provider postgresql`
+* Define the schema in `prisma/schema.prisma`:
++
+[source,prisma]
+----
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id         Int       @id @default(autoincrement())
+  shopwareId Int       @unique
+  title      String
+  description String?
+  tags       String[]
+  price      Decimal?  @db.Decimal(10, 2)
+  category   String?
+  images     Json?
+  updatedAt  DateTime  @default(now())
+  ActivityLog ActivityLog[]
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  action    String
+  userId    Int?
+  timestamp DateTime @default(now())
+}
+----
+Use code with caution.
+* Run migrations: `npx prisma migrate dev --name init`
+* Generate the Prisma client: `npx prisma generate`
+* Use the Prisma client in your services and controllers.
+
+==== User Authentication and Role-Based Access Control (RBAC)
+
+===== Backend: Implement User Model and Authentication
+* Create a User entity/model (similar to the Product example).
+* Implement user registration and login endpoints.
+* Use JWT for session management.
+* Install dependencies: `npm install bcrypt jsonwebtoken @types/jsonwebtoken`.
+* Create authentication middleware to protect routes.
+* Example `src/middlewares/auth.middleware.ts`:
++
+[source,typescript]
+----
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { config } from 'dotenv';
+config();
+
+interface UserPayload {
+  userId: number;
+  role: string;
+}
+
+export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
+      if (err) {
+        return res.sendStatus(403); // Invalid token
+      }
+      req.user = user as UserPayload;
+      next();
+    });
+  } else {
+    res.sendStatus(401); // No token provided
+  }
+};
+
+export const authorize = (roles: string[]) => (req: Request, res: Response, next: NextFunction) => {
+  if (req.user && roles.includes(req.user.role)) {
+    next();
+  } else {
+    res.sendStatus(403); // Unauthorized
+  }
+};
+----
+Use code with caution.
+
+===== Frontend: Implement Login and Authentication Flow
+* Create login form and API calls to the backend `/login` endpoint.
+* Store JWT in local storage or cookies.
+* Include JWT in the `Authorization` header for protected API requests.
+* Use React Context or Redux to manage authentication state.
+
+==== Implement Core Backend Logic
+
+===== Product Data Synchronization
+* Create a service function to fetch products from Shopware and store/update them in your PostgreSQL database.
+* Implement logic to handle new products and updates to existing products.
+* Consider using a background job or scheduled task for periodic synchronization.
+
+===== AI-Powered Optimization and Completion Logic
+* Implement backend services to call the AI engine (OpenAI) for title, description, and tag optimization.
+* Implement logic to detect missing fields (e.g., using rules or AI) and generate suggestions.
+* Create API endpoints for fetching products with AI suggestions.
+* Example `src/controllers/product.controller.ts`:
++
+[source,typescript]
+----
+import { Request, Response } from 'express';
+import { AppDataSource } from '../data-source';
+import { Product } from '../entities/product.entity';
+import { optimizeProductDescription } from '../services/ai.service';
+import { fetchProducts as fetchShopwareProducts, updateProduct as updateShopwareProduct } from '../services/shopware.service';
+
+const productRepository = AppDataSource.getRepository(Product);
+
+export const getProducts = async (req: Request, res: Response) => {
+  try {
+    const products = await productRepository.find();
+    res.json(products);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const optimizeProduct = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const product = await productRepository.findOneBy({ id: parseInt(id) });
+  if (!product) {
+    return res.status(404).json({ message: 'Product not found' });
+  }
+
+  try {
+    const optimizedDescription = await optimizeProductDescription(product.title, product.description);
+// Store the suggestion temporarily or return it to the frontend for approval
+           res.json({ suggestion: { description: optimizedDescription } });
+         } catch (error: any) {
+           res.status(500).json({ message: error.message });
+         }
+       };
+
+       export const updateProductData = async (req: Request, res: Response) => {
+         const { id } = req.params;
+         const { title, description, tags } = req.body; // Data to update
+
+         try {
+           const product = await productRepository.findOneBy({ id: parseInt(id) });
+           if (!product) {
+             return res.status(404).json({ message: 'Product not found' });
+           }
+
+           // Update local database
+           product.title = title || product.title;
+           product.description = description || product.description;
+           product.tags = tags || product.tags;
+           await productRepository.save(product);
+
+           // Update Shopware (assuming shopwareId is available)
+           await updateShopwareProduct(product.shopwareId.toString(), {
+             name: title,
+             description: description,
+             tags: tags ? tags.map(tag => ({ name: tag })) : undefined,
+           });
+
+           res.json({ message: 'Product updated successfully' });
+         } catch (error: any) {
+           console.error('Error updating product:', error);
+           res.status(500).json({ message: error.message });
+         }
+       };
+
+       // ... other controller functions
+----
+Use code with caution.
+
+===== Activity Logging
+* Create middleware or service functions to log user actions (e.g., approving suggestions, updating products).
+* Example `src/middlewares/activity-log.middleware.ts`:
++
+[source,typescript]
+----
+       import { Request, Response, NextFunction } from 'express';
+       import { AppDataSource } from '../data-source';
+       import { ActivityLog } from '../entities/activity-log.entity';
+
+       const activityLogRepository = AppDataSource.getRepository(ActivityLog);
+
+       export const logActivity = (action: string) => async (req: Request, res: Response, next: NextFunction) => {
+         try {
+           const productId = req.params.id ? parseInt(req.params.id) : undefined;
+           const userId = req.user ? req.user.userId : undefined; // Assuming user info is in req.user
+
+           const log = activityLogRepository.create({
+             productId: productId,
+             action: action,
+             userId: userId,
+           });
+           await activityLogRepository.save(log);
+           next();
+         } catch (error) {
+           console.error('Error logging activity:', error);
+           next(error); // Pass error to error handling middleware
+         }
+       };
+----
+Use code with caution.
+* Apply this middleware to relevant routes:
++
+[source,typescript]
+----
+       // ... in your routes file
+
+       app.put('/api/products/:id', authenticate, authorize(['merchant', 'admin']), logActivity('Update Product'), productController.updateProductData);
+       app.post('/api/suggestions/:id/approve', authenticate, authorize(['merchant', 'admin']), logActivity('Approve Suggestion'), suggestionController.approveSuggestion);
+----
+
+=== Step 5: Frontend Development (Components, State Management, API Calls)
+
+==== Build React Components
+* **Login Component:** Form for user login, API call to backend `/login`.
+* **Dashboard Component:** Displays a list of products, fetches data from backend `/api/products`.
+* **Product Detail/Edit Component:**
+** Displays detailed product information.
+** Allows merchants to view AI suggestions and edit product data.
+** Includes buttons to approve/reject suggestions, triggering API calls.
+* **Activity Log Component:** Fetches and displays activity logs from backend `/api/logs`.
+* **Navigation/Layout Components:** Structure the UI.
+
+==== State Management (Redux or Zustand)
+
+===== Redux
+* Define actions, reducers, and selectors for managing application state (e.g., products, user authentication, loading states).
+* Use `redux-thunk` or `redux-saga` for asynchronous API calls.
+* Example Redux slice for products:
++
+[source,typescript]
+----
+       // frontend/src/slices/productSlice.ts
+       import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+       import axios from 'axios';
+
+       interface Product {
+         id: number;
+         title: string;
+         description?: string;
+         // ... other properties
+       }
+
+       interface ProductState {
+         products: Product[];
+         loading: boolean;
+         error: string | null;
+       }
+       
+       const initialState: ProductState = {
+         products: [],
+         loading: false,
+         error: null,
+       };
+
+       export const fetchProducts = createAsyncThunk('products/fetchProducts', async () => {
+         const response = await axios.get('/api/products');
+         return response.data;
+       });
+
+       const productSlice = createSlice({
+         name: 'products',
+         initialState,
+         reducers: {},
+         extraReducers: (builder) => {
+           builder
+             .addCase(fetchProducts.pending, (state) => {
+               state.loading = true;
+             })
+             .addCase(fetchProducts.fulfilled, (state, action) => {
+               state.loading = false;
+               state.products = action.payload;
+             })
+             .addCase(fetchProducts.rejected, (state, action) => {
+               state.loading = false;
+               state.error = action.error.message || 'Failed to fetch products';
+             });
+         },
+       });
+
+       export default productSlice.reducer;
+----
+Use code with caution.
+
+===== Zustand
+* Create stores with state and actions. Simpler setup compared to Redux.
+* Example Zustand store for products:
++
+[source,typescript]
+----
+       // frontend/src/store/productStore.ts
+       import create from 'zustand';
+       import axios from 'axios';
+
+       interface Product {
+         id: number;
+         title: string;
+         description?: string;
+         // ... other properties
+       }
+
+       interface ProductState {
+         products: Product[];
+         loading: boolean;
+         error: string | null;
+         fetchProducts: () => Promise<void>;
+       }
+
+       export const useProductStore = create<ProductState>((set) => ({
+         products: [],
+         loading: false,
+         error: null,
+         fetchProducts: async () => {
+           set({ loading: true, error: null });
+           try {
+             const response = await axios.get('/api/products');
+             set({ products: response.data, loading: false });
+           } catch (error: any) {
+             set({ loading: false, error: error.message || 'Failed to fetch products' });
+           }
+         },
+       }));
+----
+Use code with caution.
+
+==== Implement API Integrations
+* Use `axios` to make API calls to the backend endpoints for fetching products, submitting updates, retrieving suggestions, etc.
+* Handle API responses and update the application state accordingly.
+* Implement error handling for API calls.
+
+=== Step 6: Deployment
+
+==== Backend Deployment
+
+===== Containerization with Docker
+* Create a `Dockerfile` in the backend root:
++
+[source,dockerfile]
+----
+FROM node:18-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build # Or your build command if using TypeScript
+
+EXPOSE 5000
+CMD ["npm", "start"]
+----
+* Build the Docker image: `docker build -t shopware-ai-backend .`
+* Run the Docker container: `docker run -p 5000:5000 shopware-ai-backend`
+
+===== Deployment Platforms
+* **Heroku:** Use Heroku CLI to deploy the Docker image or directly deploy the Node.js application.
+* **AWS (ECS, EC2):** Push the Docker image to ECR and deploy it on ECS or run the container on an EC2 instance.
+* **Google Cloud (Cloud Run, Compute Engine):** Push the Docker image to Google Container Registry and deploy it on Cloud Run or Compute Engine.
+
+==== Frontend Deployment
+* **Build the React Application:** `npm run build`
+* **Deployment Platforms:**
+** **Netlify:** Connect your GitHub repository to Netlify for automatic deployments on code pushes.
+** **Vercel:** Similar to Netlify, connect your repository for easy deployment.
+** **AWS S3 and CloudFront:** Upload the build output to an S3 bucket and use CloudFront for CDN.
+
+==== Database Deployment
+* **Managed Services (AWS RDS, Supabase, ElephantSQL):** Easier to set up and maintain.
+* **Self-Hosted on Cloud VM:** Requires more manual configuration and maintenance.
+
+==== AI Service Deployment
+* **OpenAI API:** No deployment needed, just configure the API key.
+* **Hugging Face Inference API:** Use their API endpoints.
+* **Custom Model Hosting (AWS SageMaker, GCP AI Platform):** Deploy your trained model as a service.
+
+==== Environment Variables Configuration
+* Securely manage environment variables (API keys, database credentials) in your deployment environment (e.g., Heroku Config Vars, AWS Secrets Manager).
+
+=== Step 7: Testing
+
+==== Unit Tests
+* **Backend:** Test individual functions, services, and controllers using Jest and Supertest.
+* **Frontend:** Test React components in isolation using React Testing Library.
+
+==== Integration Tests
+* Test the interaction between different modules (e.g., backend API endpoints interacting with the database).
+* Test frontend components interacting with backend APIs.
+
+==== End-to-End (E2E) Tests
+* Use Cypress or Playwright to simulate user interactions and test the entire application flow.
+
+=== Step 8: Monitoring and Maintenance
+
+==== Detailed Monitoring Setup
+
+===== Backend Monitoring
+* **Metrics to Track**:
+** API Response Times: Track average, minimum, and maximum response times for each API endpoint. Set up alerts for slow responses.
+** Error Rates: Monitor the frequency of HTTP error codes (4xx, 5xx).
+** Resource Utilization: Track CPU usage, memory usage, and disk I/O of the backend servers.
+** Database Performance: Monitor query execution times, number of active connections, and database resource utilization.
+** Background Job Status: If you implement background jobs for data synchronization or other tasks, monitor their success and failure rates.
+* **Tools**:
+** Prometheus: An open-source monitoring system with a powerful query language (PromQL).
+** Grafana: A data visualization and dashboarding tool that integrates well with Prometheus.
+** New Relic, Datadog: Commercial APM (Application Performance Monitoring) tools offering comprehensive monitoring and alerting features.
+** Cloud Provider Monitoring: AWS CloudWatch, Google Cloud Monitoring, Azure Monitor.
+* **Alerting**:
+** Configure alerts based on predefined thresholds (e.g., API response time exceeds 1 second, error rate above 5%).
+** Integrate alerts with notification channels (email, Slack, PagerDuty).
+
+===== Frontend Monitoring
+* **Metrics to Track**:
+** Page Load Times: Monitor how long it takes for pages to load for users.
+** JavaScript Errors: Track client-side JavaScript errors.
+** User Engagement: Track metrics like time spent on page, bounce rate, and user flows (using tools like Google Analytics).
+** Frontend Performance Metrics: Use browser APIs like Navigation Timing API and Resource Timing API to collect detailed performance data.
+* **Tools**:
+** Google Analytics: For tracking user behavior and website traffic.
+** Sentry, Bugsnag: For error tracking and reporting.
+** WebPageTest, Lighthouse: For performance auditing and recommendations.
+** Browser Developer Tools: Use the browser's built-in tools for real-time monitoring.
+* **Real User Monitoring (RUM)**: Implement RUM to collect performance data from actual user sessions.
+
+===== Database Monitoring
+* **Metrics to Track**:
+** Query Performance: Monitor the execution time of frequently used or slow-running queries.
+** Database Connections: Track the number of active and idle connections.
+** Disk Space and I/O: Monitor disk usage and I/O operations.
+** Replication Lag (if applicable): Monitor the delay in replicating data to secondary databases.
+* **Tools**:
+** pgAdmin: A popular open-source administration and development tool for PostgreSQL.
+** Cloud Provider Monitoring: AWS RDS Performance Insights, Google Cloud SQL Insights, Azure Database for PostgreSQL monitoring.
+** Specialized Database Monitoring Tools: Pganalyze, Datadog for PostgreSQL.
+
+==== Detailed Logging Strategies
+
+===== Backend Logging
+* **Structured Logging**: Use a structured logging format (e.g., JSON) to make logs easier to parse and analyze.
+* **Log Levels**: Use appropriate log levels (DEBUG, INFO, WARNING, ERROR, FATAL) to categorize log messages.
+* **Correlation IDs**: Include correlation IDs in logs to track requests across different services.
+* **Sensitive Data Handling**: Avoid logging sensitive data directly. If needed, redact or mask sensitive information.
+* **Log Aggregation**: Use tools like ELK Stack (Elasticsearch, Logstash, Kibana) or Splunk to aggregate and analyze logs from multiple sources.
+* **Libraries**: `winston`, `pino` for Node.js.
+
+===== Frontend Logging
+* **Error Logging**: Capture and report JavaScript errors to monitoring services like Sentry.
+* **User Activity Logging (with Privacy Considerations)**: Log significant user actions (e.g., approving suggestions) while respecting user privacy.
+* **Console Logging (for Development)**: Use `console.log`, `console.warn`, `console.error` during development.
+
+==== Regular Maintenance Tasks
+* **Dependency Updates**: Regularly update backend and frontend dependencies to patch security vulnerabilities and benefit from new features. Use tools like `npm audit` or `yarn audit` to identify vulnerabilities.
+* **Database Maintenance**:
+** *Vacuuming*: Run `VACUUM` on PostgreSQL databases to reclaim storage occupied by deleted or updated rows.
+** *Analyzing*: Run `ANALYZE` to update the query planner's statistics for better query performance.
+** *Index Maintenance*: Review and rebuild indexes as needed.
+** *Backups*: Implement regular database backups and test the restore process.
+* **Code Refactoring**: Periodically refactor code to improve readability, maintainability, and performance.
+* **Security Audits**: Conduct regular security audits to identify potential vulnerabilities.
+* **Performance Optimization**: Continuously analyze performance metrics and identify areas for optimization (e.g., database queries, frontend rendering).
+* **AI Model Retraining/Fine-tuning**:
+** Monitor the performance of the AI models. If accuracy or relevance decreases over time, consider retraining or fine-tuning the models with new data.
+** Implement a feedback loop where merchant interactions (approvals/rejections) are used to improve the AI model.
+** Explore techniques like active learning to efficiently select data for retraining.
+
+==== Handling User Feedback and Feature Requests
+* **Collect Feedback**: Implement mechanisms for merchants to provide feedback (e.g., feedback forms, in-app surveys).
+* **Prioritize Feedback**: Use a system to prioritize feedback and feature requests based on impact and feasibility.
+* **Feature Planning**: Incorporate prioritized feedback into the product roadmap and development sprints.
+
+==== Scaling the Application
+* **Horizontal Scaling**: Add more instances of the backend and frontend servers to handle increased traffic.
+* **Load Balancing**: Use load balancers to distribute traffic across multiple server instances.
+* **Database Scaling**:
+** *Read Replicas*: Implement read replicas for the database to handle read-heavy workloads.
+** *Database Sharding*: If the data volume becomes very large, consider sharding the database.
+* **Caching**: Implement caching strategies at different levels (e.g., CDN for static assets, Redis or Memcached for frequently accessed data).
+* **Optimize AI Inference**: If AI inference becomes a bottleneck, consider optimizing the model or using specialized hardware (e.g., GPUs).
+
+==== Disaster Recovery and Business Continuity
+* **Plan for Failures**: Design the system to be resilient to failures (e.g., server outages, network issues).
+* **Automated Failover**: Implement automated failover mechanisms for critical components.
+* **Regular DR Drills**: Conduct regular disaster recovery drills to test the effectiveness of the recovery plan.
+
+==== Technology Evolution
+* **Stay Updated**: Keep abreast of new technologies and frameworks that could benefit the application.
+* **Evaluate and Adopt**: Periodically evaluate new technologies and consider adopting them if they offer significant advantages.
+* **Tech Debt Management**: Address technical debt proactively to avoid it hindering future development.
+
+=== Ongoing Development Considerations
+* **Iterative Development**: Follow an iterative development approach, releasing new features and improvements in small, frequent increments.
+* **A/B Testing**: Use A/B testing to evaluate the impact of new features or changes before rolling them out to all users.
+* **Personalization**: Explore opportunities to personalize the AI suggestions and user experience based on merchant data and preferences.
+* **Expand AI Capabilities**: Continuously explore new ways to leverage AI for product optimization and completion (e.g., image analysis for missing images, sentiment analysis of product reviews).
+* **Community Building**: If applicable, build a community around the tool to gather feedback and foster collaboration.
+* **Documentation**: Maintain comprehensive documentation for developers and users.
+
+=== Project Structure
+
+```
+shopware app/
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── data-source.ts
+│   │   ├── controllers/
+│   │   │   └── product.controller.ts
+│   │   ├── entities/
+│   │   │   ├── activity-log.entity.ts
+│   │   │   └── product.entity.ts
+│   │   ├── middlewares/
+│   │   │   ├── activity-log.middleware.ts
+│   │   │   └── auth.middleware.ts
+│   │   ├── repositories/
+│   │   │   ├── activity-log.repository.ts
+│   │   │   └── product.repository.ts
+│   │   ├── routes/
+│   │   │   └── index.ts
+│   │   ├── services/
+│   │   │   ├── ai.service.ts
+│   │   │   └── shopware.service.ts
+│   │   └── index.ts
+│   ├── tests/
+│   │   ├── integration/
+│   │   └── unit/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── .env
+├── frontend/
+│   ├── public/
+│   │   ├── index.html
+│   │   └── ... (other static assets)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── LoginForm.tsx
+│   │   │   ├── ProductDetail.tsx
+│   │   │   ├── ProductList.tsx
+│   │   │   └── ... (other reusable components)
+│   │   ├── pages/
+│   │   │   ├── ActivityLogPage.tsx
+│   │   │   ├── DashboardPage.tsx
+│   │   │   ├── LoginPage.tsx
+│   │   │   └── ProductOptimizationPage.tsx
+│   │   ├── services/
+│   │   │   └── api.ts
+│   │   ├── store/
+│   │   │   ├── index.ts
+│   │   │   ├── productSlice.ts
+│   │   │   └── authSlice.ts
+│   │   ├── styles/
+│   │   │   └── global.css
+│   │   ├── App.tsx
+│   │   ├── index.tsx
+│   │   ├── react-app-env.d.ts
+│   │   └── setupTests.ts
+│   ├── Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
+├── database/
+│   ├── migrations/
+│   │   └── ... (migration files)
+│   └── seeds/
+│       └── ... (seed files)
+├── ai-engine/
+│   ├── models/
+│   │   └── ... (pretrained or fine-tuned AI models)
+│   ├── scripts/
+│   │   └── train_model.py
+│   └── requirements.txt
+├── docs/
+│   └── README.adoc
+├── tests/
+│   ├── backend/
+│   │   ├── integration/
+│   │   └── unit/
+│   └── frontend/
+│       ├── e2e/
+│       └── integration/
+├── docker-compose.yml
+└── README.adoc
+```
+
+== Explanation of Files and Directories
+
+=== `backend/`
+Contains the Node.js/TypeScript backend application.
+
+==== `src/`
+Source code directory.
+
+===== `config/`
+Configuration files.
+* `data-source.ts`: TypeORM data source configuration.
+
+===== `controllers/`
+Express route handlers.
+* `product.controller.ts`: Handles product-related API requests.
+
+===== `entities/`
+TypeORM entity definitions (database models).
+* `activity-log.entity.ts`: Definition for the activity logs table.
+* `product.entity.ts`: Definition for the products table.
+
+===== `middlewares/`
+Express middlewares.
+* `activity-log.middleware.ts`: Middleware for logging user actions.
+* `auth.middleware.ts`: Middleware for authentication and authorization.
+
+===== `repositories/`
+TypeORM custom repositories (optional).
+* `activity-log.repository.ts`: Custom repository for activity logs.
+* `product.repository.ts`: Custom repository for products.
+
+===== `routes/`
+Defines API routes.
+* `index.ts`: Main file to set up and combine all routes.
+
+===== `services/`
+Business logic and integrations.
+* `ai.service.ts`: Handles communication with the AI engine (e.g., OpenAI).
+* `shopware.service.ts`: Handles communication with the Shopware API.
+
+===== `index.ts`
+Main entry point for the backend application.
+
+==== `tests/`
+Backend tests.
+* `integration/`: Integration tests.
+* `unit/`: Unit tests.
+
+==== Dockerfile
+Docker configuration for the backend.
+
+==== package.json
+Node.js project dependencies and scripts.
+
+==== tsconfig.json
+TypeScript compiler configuration.
+
+==== .env
+Environment variables.
+
+=== `frontend/`
+Contains the React/TypeScript frontend application.
+
+==== `public/`
+Static assets served directly.
+* `index.html`: Main HTML file.
+* `... (other static assets)`: Images, fonts, etc.
+
+==== `src/`
+Source code directory.
+
+===== `components/`
+Reusable React components.
+* `Dashboard.tsx`: Component for the main dashboard.
+* `LoginForm.tsx`: Component for the login form.
+* `ProductDetail.tsx`: Component to display and edit product details.
+* `ProductList.tsx`: Component to list products.
+* `... (other reusable components)`: Buttons, modals, etc.
+
+===== `pages/`
+Page-level components.
+* `ActivityLogPage.tsx`: Page to display activity logs.
+* `DashboardPage.tsx`: Container for the main dashboard.
+* `LoginPage.tsx`: Login page.
+* `ProductOptimizationPage.tsx`: Page for manual product optimization.
+
+===== `services/`
+Abstractions for API calls.
+* `api.ts`: Uses Axios to make requests to the backend.
+
+===== `store/`
+Redux store configuration and slices.
+* `index.ts`: Configures the Redux store.
+* `productSlice.ts`: Redux slice for managing product data.
+* `authSlice.ts`: Redux slice for managing authentication state.
+
+===== `styles/`
+CSS styles.
+* `global.css`: Global styles.
+
+===== App.tsx
+Main application component.
+
+===== index.tsx
+Entry point for the React application.
+
+===== react-app-env.d.ts
+TypeScript definitions for React app environment.
+
+===== setupTests.ts
+Setup for testing environment.
+
+==== Dockerfile
+Docker configuration for the frontend.
+
+==== package.json
+Frontend project dependencies and scripts.
+
+==== tsconfig.json
+TypeScript compiler configuration.
+
+=== `database/`
+Database-related files.
+
+==== `migrations/`
+Database migration scripts (for TypeORM or Prisma).
+
+==== `seeds/`
+Database seed files for initial data.
+
+=== `ai-engine/`
+Files related to the AI model.
+
+==== `models/`
+Trained or fine-tuned AI models.
+
+==== `scripts/`
+Scripts for training or evaluating AI models.
+* `train_model.py`: Example Python script for training the AI model.
+
+==== requirements.txt
+Python dependencies for the AI engine.
+
+=== `docs/`
+Documentation.
+* `README.adoc`: Project documentation in AsciiDoc format.
+
+=== `tests/`
+End-to-end and integration tests.
+
+==== `backend/`
+Backend-specific tests.
+* `integration/`: Integration tests.
+* `unit/`: Unit tests.
+
+==== `frontend/`
+Frontend-specific tests.
+* `e2e/`: End-to-end tests (e.g., using Cypress).
+* `integration/`: Integration tests.
+
+=== `docker-compose.yml`
+Docker Compose configuration for local development.
