@@ -1,5 +1,6 @@
 import { 
     Toolbar,
+    TextField,
     OutlinedInput,
     InputAdornment,
   } from '@mui/material';
@@ -27,25 +28,21 @@ import {
   
   interface ProductTableToolbarProps {
     filterName: string;
-    onFilterName: (value: string) => void;
+    onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   }
   
-  export default function ProductTableToolbar({
-    filterName,
-    onFilterName,
-  }: ProductTableToolbarProps) {
+  export default function ProductTableToolbar({ filterName, onFilterName }: ProductTableToolbarProps) {
     return (
-      <StyledRoot>
-        <StyledSearch
+      <Toolbar sx={{ p: 2 }}>
+        <TextField
+          size="small"
           value={filterName}
-          onChange={(e) => onFilterName(e.target.value)}
-          placeholder="Produkt suchen..."
-          startAdornment={
-            <InputAdornment position="start">
-              <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
-            </InputAdornment>
-          }
+          onChange={onFilterName}
+          placeholder="Suche Produkte..."
+          InputProps={{
+            startAdornment: <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />,
+          }}
         />
-      </StyledRoot>
+      </Toolbar>
     );
   }

@@ -9,11 +9,12 @@ import {
     return (
       <TableHead>
         <TableRow>
-          <TableCell>Product</TableCell>
-          <TableCell>Shopware ID</TableCell>
-          <TableCell>Price</TableCell>
+          <TableCell>Name</TableCell>
+          <TableCell>Artikelnummer</TableCell>
+          <TableCell>Preis</TableCell>
+          <TableCell>Bestand</TableCell>
           <TableCell>Status</TableCell>
-          <TableCell align="right">Actions</TableCell>
+          <TableCell align="right">Aktionen</TableCell>
         </TableRow>
       </TableHead>
     );
