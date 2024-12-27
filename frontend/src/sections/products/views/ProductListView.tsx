@@ -17,6 +17,7 @@ import {
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useRouter } from 'src/routes/hooks';
 import type { ShopwareProduct, ShopwareProductData } from 'src/types/product';
 import { productApi } from '../../../services/api';
 
@@ -25,6 +26,7 @@ import ProductTableHead from '../components/ProductTableHead';
 import ProductTableToolbar from '../components/ProductTableToolbar';
 
 export default function ProductListView() {
+  const router = useRouter();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [filterName, setFilterName] = useState('');
@@ -71,9 +73,15 @@ export default function ProductListView() {
     setPage(0);
   }, []);
 
+  // Bearbeiten-Funktion
+  const handleEdit = (productId: number) => {
+    router.push(`/products/${productId}/edit`);
+  };
+
   // Filter products based on name
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(filterName.toLowerCase())
+    product.name.toLowerCase().includes(filterName.toLowerCase()) ||
+    product.mainDetail.number.toLowerCase().includes(filterName.toLowerCase())
   );
 
   const handleFilterNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,14 +136,23 @@ export default function ProductListView() {
                 <ProductTableHead />
 
                 <TableBody>
-                  {filteredProducts
-                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    .map((product) => (
-                      <ProductTableRow
-                        key={product.id}
-                        product={product}
-                      />
-                    ))}
+                  {filteredProducts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">
+                        Keine Produkte gefunden
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredProducts
+                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                      .map((product) => (
+                        <ProductTableRow
+                          key={product.id}
+                          product={product}
+                          onEdit={handleEdit} // Details anstatt Edit (Bin zu faul um namen zu ändern)
+                        />
+                      ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>

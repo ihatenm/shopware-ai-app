@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import ProductDetail from '../components/products/ProductDetail';
 
-const ProductEditPage: React.FC = () => {
+const ProductDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
   return (
@@ -12,4 +12,4 @@ const ProductEditPage: React.FC = () => {
   );
 };
 
-export default ProductEditPage;
+export default ProductDetailsPage;

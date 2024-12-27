@@ -17,9 +17,10 @@ import type { ShopwareProductData } from 'src/types/product';
 
 type Props = {
   product: ShopwareProductData;
+  onEdit?: (id: number) => void; // Füge onEdit als optionale Prop hinzu
 };
 
-export default function ProductTableRow({ product }: Props) {
+export default function ProductTableRow({ product, onEdit }: Props) {
   console.log('Rendering product:', product); // DEBUG
   const [open, setOpen] = useState<HTMLElement | null>(null);
 
@@ -31,14 +32,33 @@ export default function ProductTableRow({ product }: Props) {
     setOpen(null);
   };
 
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(product.id);
+      handleCloseMenu();
+    }
+  };
+
   // Optional Chaining für sicheren Zugriff auf mainDetail
   return (
     <TableRow hover>
       <TableCell>
         <Stack direction="row" alignItems="center" spacing={2}>
-          <Typography variant="subtitle2" noWrap>
-            {product.name}
-          </Typography>
+        <Typography 
+      variant="subtitle2" 
+      noWrap 
+      sx={{ 
+        maxWidth: 300, // Maximale Breite in Pixeln
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        '&:hover': {
+          overflow: 'hidden'
+        }
+      }}
+      title={product.name} // Zeigt den vollen Namen beim Hover
+    >
+      {product.name}
+    </Typography>
         </Stack>
       </TableCell>
 
@@ -66,9 +86,9 @@ export default function ProductTableRow({ product }: Props) {
         anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <MenuItem onClick={handleCloseMenu}>
-          <Iconify icon="eva:edit-fill" sx={{ mr: 2 }} />
-          Bearbeiten
+        <MenuItem onClick={handleEdit}>
+          <Iconify icon="eva:eye-fill" sx={{ mr: 2 }} />
+          Details
         </MenuItem>
 
         <MenuItem onClick={handleCloseMenu} sx={{ color: 'error.main' }}>

@@ -3,61 +3,38 @@ import {
   Box,
   Card,
   Grid,
-  Button,
-  TextField,
+  Divider,
   Typography,
   CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Paper,
 } from '@mui/material';
+import type { ShopwareProductData } from '../../types/product';
+import { productApi } from '../../services/api';
 
 interface ProductDetailProps {
   productId?: string;
 }
 
-interface Product {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  tags: string[];
-  aiSuggestions?: {
-    title?: string;
-    description?: string;
-    tags?: string[];
-  };
-}
-
 const ProductDetail: React.FC<ProductDetailProps> = ({ productId }) => {
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ShopwareProductData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    tags: ''
-  });
-
-  // Load product data
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId) return;
       
       try {
-        // This is where you'll make an API call to your backend
-        const response = await fetch(`/api/products/${productId}`);
-        const data = await response.json();
-        
-        setProduct(data);
-        setFormData({
-          title: data.title,
-          description: data.description,
-          price: data.price.toString(),
-          tags: data.tags.join(', ')
-        });
+        setLoading(true);
+        const response = await productApi.getProduct(productId);
+        setProduct(response.data);
       } catch (err) {
-        setError('Failed to load product');
+        setError('Fehler beim Laden des Produkts');
         console.error('Error:', err);
       } finally {
         setLoading(false);
@@ -67,142 +44,112 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId }) => {
     fetchProduct();
   }, [productId]);
 
-  // Handle form changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      // This is where you'll make an API call to update the product
-      const response = await fetch(`/api/products/${productId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          tags: formData.tags.split(',').map(tag => tag.trim())
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update product');
-      }
-
-      // Show success message (you can add a snackbar/toast here)
-      alert('Product updated successfully');
-    } catch (err) {
-      setError('Failed to update product');
-      console.error('Error:', err);
-    }
-  };
-
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
-  if (!product) return <Typography>No product found</Typography>;
+  if (!product) return <Typography>Kein Produkt gefunden</Typography>;
 
   return (
     <Box sx={{ p: 3 }}>
       <Card sx={{ p: 3 }}>
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h5">Edit Product</Typography>
-            </Grid>
+        <Typography variant="h4" gutterBottom>
+          {product.name}
+        </Typography>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                name="title"
-                label="Product Title"
-                value={formData.title}
-                onChange={handleChange}
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                name="description"
-                label="Description"
-                value={formData.description}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                name="price"
-                label="Price"
-                type="number"
-                value={formData.price}
-                onChange={handleChange}
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                name="tags"
-                label="Tags (comma-separated)"
-                value={formData.tags}
-                onChange={handleChange}
-                helperText="Enter tags separated by commas"
-              />
-            </Grid>
-
-            {product.aiSuggestions && (
-              <Grid item xs={12}>
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                  <Typography variant="h6">AI Suggestions</Typography>
-                  {product.aiSuggestions.title && (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="subtitle2">Suggested Title:</Typography>
-                      <Typography>{product.aiSuggestions.title}</Typography>
-                      <Button 
-                        size="small" 
-                        onClick={() => setFormData(prev => ({ ...prev, title: product.aiSuggestions?.title || '' }))}
-                      >
-                        Apply
-                      </Button>
-                    </Box>
-                  )}
-                  {product.aiSuggestions.description && (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="subtitle2">Suggested Description:</Typography>
-                      <Typography>{product.aiSuggestions.description}</Typography>
-                      <Button 
-                        size="small"
-                        onClick={() => setFormData(prev => ({ ...prev, description: product.aiSuggestions?.description || '' }))}
-                      >
-                        Apply
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-              </Grid>
-            )}
-
-            <Grid item xs={12}>
-              <Button variant="contained" type="submit">
-                Save Changes
-              </Button>
-            </Grid>
+        {/* Hauptinformationen */}
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableBody>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                    <TableCell>{product.id}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Beschreibung</TableCell>
+                    <TableCell>{product.description}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Lange Beschreibung</TableCell>
+                    <TableCell>{product.descriptionLong}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                    <TableCell>{product.active ? 'Aktiv' : 'Inaktiv'}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Keywords</TableCell>
+                    <TableCell>{product.keywords}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Grid>
-        </form>
+
+          {/* MainDetail Informationen */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+              Artikel Details
+            </Typography>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableBody>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Artikelnummer</TableCell>
+                    <TableCell>{product.mainDetail.number}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Lieferantennummer</TableCell>
+                    <TableCell>{product.mainDetail.supplierNumber}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Lagerbestand</TableCell>
+                    <TableCell>{product.mainDetail.inStock}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Einkaufspreis</TableCell>
+                    <TableCell>{product.mainDetail.purchasePrice} €</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>EAN</TableCell>
+                    <TableCell>{product.mainDetail.ean}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Gewicht</TableCell>
+                    <TableCell>{product.mainDetail.weight || '-'}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" sx={{ fontWeight: 'bold' }}>Maße (L/B/H)</TableCell>
+                    <TableCell>
+                      {product.mainDetail.len || '-'} / 
+                      {product.mainDetail.width || '-'} / 
+                      {product.mainDetail.height || '-'}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Grid>
+
+          {/* Attribute */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+              Attribute
+            </Typography>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableBody>
+                  {Object.entries(product.mainDetail.attribute).map(([key, value]) => (
+                    <TableRow key={key}>
+                      <TableCell component="th" sx={{ fontWeight: 'bold' }}>{key}</TableCell>
+                      <TableCell>{value?.toString() || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Grid>
+        </Grid>
       </Card>
     </Box>
   );
