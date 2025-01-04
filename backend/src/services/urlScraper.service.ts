@@ -8,9 +8,25 @@ import { logger } from '@utils/logger';
 @Service()
 export class urlScraperService {
   private prisma: PrismaClient;
+  private userAgents: string[];
 
   constructor() {
     this.prisma = new PrismaClient();
+    this.userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.0 Mobile/14E304 Safari/602.1',
+      'Mozilla/5.0 (Linux; Android 7.0; Nexus 5X Build/NBD90W) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Mobile Safari/537.3',
+    ];
+  }
+
+  private getRandomUserAgent(): string {
+    return this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
+  }
+
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   public async scrapeProductUrls() {
@@ -24,15 +40,16 @@ export class urlScraperService {
       for (const product of products) {
         const articleNo = product.mainDetail?.number;
         const ean = product.mainDetail?.ean;
+        const name = product.name;
 
-        if (!articleNo && !ean) {
-          logger.warn(`Produkt ${product.id} hat keine Artikelnummer oder EAN, überspringe...`);
+        if (!articleNo && !ean && !name) {
+          logger.warn(`Produkt ${product.id} hat keine Artikelnummer, EAN oder Namen, überspringe...`);
           continue;
         }
 
-        // Suche nach URLs basierend auf Artikelnummer und EAN
-        const urls = await this.searchProductUrls(articleNo, ean);
-        logger.info(`Gefundene URLs für Produkt ${product.id}: ${urls}`);
+        // Suche nach URLs basierend auf Artikelnummer, EAN und Name
+        const { allUrls, articleNoUrls, eanUrls, nameUrls } = await this.searchProductUrls(articleNo, ean, name);
+        logger.info(`Gefundene URLs für Produkt ${product.id}: ${allUrls}`);
 
         // Speichere URLs in der Datenbank
         await this.prisma.productUrls.upsert({
@@ -40,16 +57,62 @@ export class urlScraperService {
             id: product.id,
           },
           update: {
-            urls: urls,
+            urls: allUrls,
             updatedAt: new Date(),
           },
           create: {
             productId: product.id,
             articleNo: articleNo || '',
             ean: ean,
-            urls: urls,
+            urls: allUrls,
           },
         });
+
+        await this.prisma.articleNoUrls.upsert({
+          where: {
+            id: product.id,
+          },
+          update: {
+            urls: articleNoUrls,
+            updatedAt: new Date(),
+          },
+          create: {
+            productId: product.id,
+            articleNo: articleNo || '',
+            urls: articleNoUrls,
+          },
+        });
+
+        await this.prisma.eanUrls.upsert({
+          where: {
+            id: product.id,
+          },
+          update: {
+            urls: eanUrls,
+            updatedAt: new Date(),
+          },
+          create: {
+            productId: product.id,
+            ean: ean,
+            urls: eanUrls,
+          },
+        });
+
+        await this.prisma.nameUrls.upsert({
+          where: {
+            id: product.id,
+          },
+          update: {
+            urls: nameUrls,
+            updatedAt: new Date(),
+          },
+          create: {
+            productId: product.id,
+            name: name || '',
+            urls: nameUrls,
+          },
+        });
+
         logger.info(`URLs für Produkt ${product.id} gespeichert`);
       }
     } catch (error) {
@@ -72,15 +135,16 @@ export class urlScraperService {
       for (const product of selectedProducts) {
         const articleNo = product.mainDetail?.number;
         const ean = product.mainDetail?.ean;
+        const name = product.name;
 
-        if (!articleNo && !ean) {
-          logger.warn(`Produkt ${product.id} hat keine Artikelnummer oder EAN, überspringe...`);
+        if (!articleNo && !ean && !name) {
+          logger.warn(`Produkt ${product.id} hat keine Artikelnummer, EAN oder Namen, überspringe...`);
           continue;
         }
 
-        // Suche nach URLs basierend auf Artikelnummer und EAN
-        const urls = await this.searchProductUrls(articleNo, ean);
-        logger.info(`Gefundene URLs für Produkt ${product.id}: ${urls}`);
+        // Suche nach URLs basierend auf Artikelnummer, EAN und Name
+        const { allUrls, articleNoUrls, eanUrls, nameUrls } = await this.searchProductUrls(articleNo, ean, name);
+        logger.info(`Gefundene URLs für Produkt ${product.id}: ${allUrls}`);
 
         // Speichere URLs in der Datenbank
         await this.prisma.productUrls.upsert({
@@ -88,16 +152,62 @@ export class urlScraperService {
             id: product.id,
           },
           update: {
-            urls: urls,
+            urls: allUrls,
             updatedAt: new Date(),
           },
           create: {
             productId: product.id,
             articleNo: articleNo || '',
             ean: ean,
-            urls: urls,
+            urls: allUrls,
           },
         });
+
+        await this.prisma.articleNoUrls.upsert({
+          where: {
+            id: product.id,
+          },
+          update: {
+            urls: articleNoUrls,
+            updatedAt: new Date(),
+          },
+          create: {
+            productId: product.id,
+            articleNo: articleNo || '',
+            urls: articleNoUrls,
+          },
+        });
+
+        await this.prisma.eanUrls.upsert({
+          where: {
+            id: product.id,
+          },
+          update: {
+            urls: eanUrls,
+            updatedAt: new Date(),
+          },
+          create: {
+            productId: product.id,
+            ean: ean,
+            urls: eanUrls,
+          },
+        });
+
+        await this.prisma.nameUrls.upsert({
+          where: {
+            id: product.id,
+          },
+          update: {
+            urls: nameUrls,
+            updatedAt: new Date(),
+          },
+          create: {
+            productId: product.id,
+            name: name || '',
+            urls: nameUrls,
+          },
+        });
+
         logger.info(`URLs für Produkt ${product.id} gespeichert`);
       }
     } catch (error) {
@@ -106,21 +216,28 @@ export class urlScraperService {
     }
   }
 
-  private async searchProductUrls(articleNo: string, ean?: string): Promise<string[]> {
-    const urls: string[] = [];
-    const URL_LIMIT_PER_TYPE = 3; // 3 URLs pro Suchtyp (articleNo und EAN)
+  private async searchProductUrls(articleNo?: string, ean?: string, name?: string): Promise<{ allUrls: string[], articleNoUrls: string[], eanUrls: string[], nameUrls: string[] }> {
+    const allUrls: string[] = [];
+    const articleNoUrls: string[] = [];
+    const eanUrls: string[] = [];
+    const nameUrls: string[] = [];
+    const URL_LIMIT_PER_TYPE = 5; // Erhöhtes Limit auf 10 URLs pro Suchtyp (articleNo, ean und name)
 
     try {
-      logger.info(`Starte Suche nach URLs für Artikelnummer: ${articleNo}, EAN: ${ean}`);
+      logger.info(`Starte Suche nach URLs für Artikelnummer: ${articleNo}, EAN: ${ean}, Name: ${name}`);
+      
       // Suche mit Artikelnummer
       if (articleNo) {
         const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(articleNo)}`;
         logger.info(`Suche mit Artikelnummer, URL: ${searchUrl}`);
-        const response = await axios.get(searchUrl);
+        const response = await axios.get(searchUrl, {
+          headers: { 'User-Agent': this.getRandomUserAgent() },
+          timeout: 10000, // 10 Sekunden Timeout
+        });
         logger.info(`Antwort von Google für Artikelnummer: ${response.status}`);
         const $ = cheerio.load(response.data);
 
-        // Extrahiere URLs aus Google Suchergebnissen (limitiert auf 3)
+        // Extrahiere URLs aus Google Suchergebnissen (limitiert auf 10)
         let articleUrlCount = 0;
         $('a').each((_, element) => {
           if (articleUrlCount >= URL_LIMIT_PER_TYPE) return;
@@ -128,19 +245,23 @@ export class urlScraperService {
           if (url && url.startsWith('/url?q=')) {
             const cleanUrl = url.split('&')[0].replace('/url?q=', '');
             if (!cleanUrl.includes('google.com') && !cleanUrl.includes('/search')) {
-              urls.push(cleanUrl);
+              allUrls.push(cleanUrl);
+              articleNoUrls.push(cleanUrl);
               articleUrlCount++;
             }
           }
         });
-        logger.info(`Gefundene URLs für Artikelnummer ${articleNo}: ${urls}`);
+        logger.info(`Gefundene URLs für Artikelnummer ${articleNo}: ${articleNoUrls}`);
       }
 
       // Suche mit EAN falls vorhanden
       if (ean) {
         const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(ean)}`;
         logger.info(`Suche mit EAN, URL: ${searchUrl}`);
-        const response = await axios.get(searchUrl);
+        const response = await axios.get(searchUrl, {
+          headers: { 'User-Agent': this.getRandomUserAgent() },
+          timeout: 10000, // 10 Sekunden Timeout
+        });
         logger.info(`Antwort von Google für EAN: ${response.status}`);
         const $ = cheerio.load(response.data);
 
@@ -151,35 +272,70 @@ export class urlScraperService {
           if (url && url.startsWith('/url?q=')) {
             const cleanUrl = url.split('&')[0].replace('/url?q=', '');
             if (!cleanUrl.includes('google.com') && !cleanUrl.includes('/search')) {
-              urls.push(cleanUrl);
+              allUrls.push(cleanUrl);
+              eanUrls.push(cleanUrl);
               eanUrlCount++;
             }
           }
         });
-        logger.info(`Gefundene URLs für EAN ${ean}: ${urls}`);
+        logger.info(`Gefundene URLs für EAN ${ean}: ${eanUrls}`);
+      }
+
+      // Suche mit Name falls vorhanden
+      if (name) {
+        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(name)}`;
+        logger.info(`Suche mit Name, URL: ${searchUrl}`);
+        const response = await axios.get(searchUrl, {
+          headers: { 'User-Agent': this.getRandomUserAgent() },
+          timeout: 10000, // 10 Sekunden Timeout
+        });
+        logger.info(`Antwort von Google für Name: ${response.status}`);
+        const $ = cheerio.load(response.data);
+
+        let nameUrlCount = 0;
+        $('a').each((_, element) => {
+          if (nameUrlCount >= URL_LIMIT_PER_TYPE) return;
+          const url = $(element).attr('href');
+          if (url && url.startsWith('/url?q=')) {
+            const cleanUrl = url.split('&')[0].replace('/url?q=', '');
+            if (!cleanUrl.includes('google.com') && !cleanUrl.includes('/search')) {
+              allUrls.push(cleanUrl);
+              nameUrls.push(cleanUrl);
+              nameUrlCount++;
+            }
+          }
+        });
+        logger.info(`Gefundene URLs für Name ${name}: ${nameUrls}`);
       }
 
       // Filter URLs basierend auf dem Inhalt der Webseiten
-      const filteredUrls = await this.filterUrlsByContent(urls, articleNo, ean);
+      const filteredUrls = await this.filterUrlsByContent(allUrls, articleNo, ean, name);
       logger.info(`Gefilterte URLs: ${filteredUrls}`);
 
-      return [...new Set(filteredUrls)]; // Entferne Duplikate
+      return { allUrls: [...new Set(filteredUrls)], articleNoUrls, eanUrls, nameUrls }; // Entferne Duplikate
     } catch (error) {
       logger.error('Error searching product URLs:', error);
-      return [];
+      return { allUrls: [], articleNoUrls: [], eanUrls: [], nameUrls: [] };
     }
   }
 
-  private async filterUrlsByContent(urls: string[], articleNo: string, ean?: string): Promise<string[]> {
+  private async filterUrlsByContent(urls: string[], articleNo?: string, ean?: string, name?: string): Promise<string[]> {
     const validUrls: string[] = [];
 
     for (const url of urls) {
       try {
-        const response = await axios.get(url);
+        // Zufällige Verzögerung zwischen 1 und 3 Sekunden
+        await this.delay(Math.floor(Math.random() * 2000) + 1000);
+
+        const response = await axios.get(url, {
+          headers: { 'User-Agent': this.getRandomUserAgent() },
+          timeout: 10000, // 10 Sekunden Timeout
+          maxRedirects: 5, // Begrenze die Anzahl der Weiterleitungen
+        });
         const $ = cheerio.load(response.data);
         const pageContent = $('body').text();
 
-        if (pageContent.includes(articleNo) || (ean && pageContent.includes(ean))) {
+        if ((articleNo && pageContent.includes(articleNo)) || (ean && pageContent.includes(ean)) || (name && pageContent.includes(name))) {
           validUrls.push(url);
         }
       } catch (error) {

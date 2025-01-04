@@ -27,3 +27,36 @@ model ProductUrls {
 
   @@map("product_urls")
 }
+
+model ArticleNoUrls {
+  id          Int      @id @default(autoincrement())
+  productId   Int      // Shopware Produkt ID
+  articleNo   String   // Artikelnummer 
+  urls        String[] // Array von URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("article_no_urls")
+}
+
+model EanUrls {
+  id          Int      @id @default(autoincrement())
+  productId   Int      // Shopware Produkt ID
+  ean         String?  // EAN
+  urls        String[] // Array von URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ean_urls")
+}
+
+model NameUrls {
+  id          Int      @id @default(autoincrement())
+  productId   Int      // Shopware Produkt ID
+  name        String   // Produktname
+  urls        String[] // Array von URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("name_urls")
+}
