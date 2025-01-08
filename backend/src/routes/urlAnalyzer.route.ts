@@ -1,20 +1,17 @@
 import { Router } from 'express';
-import { UrlAnalyzerController } from '@controllers/urlAnalyzer.controller';
+import { urlAnalyzerController } from '@controllers/urlAnalyzer.controller';
 import { Routes } from '@interfaces/routes.interface';
 
-export class UrlAnalyzerRoute implements Routes {
+export class urlAnalyzerRoute implements Routes {
   public path = '/urlanalyzer';
   public router = Router();
-  public urlAnalyzerController = new UrlAnalyzerController();
+  public urlAnalyzerController = new urlAnalyzerController();
 
   constructor() {
     this.initializeRoutes();
   }
 
   private initializeRoutes() {
-    this.router.get(
-      `${this.path}/analyze/:productId`,
-      this.urlAnalyzerController.analyzeProductUrls
-    );
+    this.router.post(`${this.path}/analyze/:id`, this.urlAnalyzerController.analyzeProductUrlsById);
   }
 }

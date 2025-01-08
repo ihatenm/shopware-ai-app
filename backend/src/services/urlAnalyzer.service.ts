@@ -1,104 +1,91 @@
 import { Service } from 'typedi';
-import axios from 'axios';
+import puppeteer from 'puppeteer';
 import * as cheerio from 'cheerio';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '@utils/logger';
 
 @Service()
-export class UrlAnalyzerService {
+export class urlAnalyzerService {
   private prisma: PrismaClient;
+  private userAgents: string[];
 
   constructor() {
     this.prisma = new PrismaClient();
+    this.userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.0 Mobile/14E304 Safari/602.1',
+      'Mozilla/5.0 (Linux; Android 7.0; Nexus 5X Build/NBD90W) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Mobile Safari/537.3',
+    ];
   }
 
-  public async analyzeUrls(productId: number): Promise<{
-    prices: number[];
-    descriptions: string[];
-    specifications: Record<string, string>[];
-  }> {
+  private getRandomUserAgent(): string {
+    return this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
+  }
+
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  public async analyzeProductUrlsById(id: number): Promise<void> {
     try {
-      // Hole gespeicherte URLs aus der Datenbank
-      const urlData = await this.prisma.productUrls.findUnique({
-        where: { id: productId }
+      const productUrl = await this.prisma.productUrls.findUnique({
+        where: { id: id },
       });
 
-      if (!urlData || !urlData.urls.length) {
-        logger.warn(`Keine URLs für Produkt ${productId} gefunden`);
-        return { prices: [], descriptions: [], specifications: [] };
+      if (!productUrl) {
+        throw new Error(`Product URL with ID ${id} not found`);
       }
 
-      const results = {
-        prices: [] as number[],
-        descriptions: [] as string[],
-        specifications: [] as Record<string, string>[]
-      };
-
-      // Analysiere jede URL
-      for (const url of urlData.urls) {
-        try {
-          const pageData = await this.scrapePageData(url);
-          if (pageData.price) results.prices.push(pageData.price);
-          if (pageData.description) results.descriptions.push(pageData.description);
-          if (pageData.specifications) results.specifications.push(pageData.specifications);
-        } catch (error) {
-          logger.error(`Fehler beim Analysieren von URL ${url}:`, error);
-          continue;
-        }
+      for (const url of productUrl.urls) {
+        await this.analyzeUrl(url, productUrl.productId, productUrl.id);
       }
-
-      return results;
     } catch (error) {
-      logger.error(`Fehler beim URL-Analysevorgang für Produkt ${productId}:`, error);
+      logger.error(`Error analyzing product URLs for ID ${id}:`, error);
       throw error;
     }
   }
 
-  private async scrapePageData(url: string): Promise<{
-    price?: number;
-    description?: string;
-    specifications?: Record<string, string>;
-  }> {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
-    
-    return {
-      price: this.extractPrice($),
-      description: this.extractDescription($),
-      specifications: this.extractSpecifications($)
-    };
-  }
+  private async analyzeUrl(url: string, productId: number, productUrlId: number): Promise<void> {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
 
-  private extractPrice($: cheerio.CheerioAPI): number | undefined {
-    // Suche nach typischen Preiselementen
-    const priceText = $('[itemprop="price"], .price, span[class*="price"]')
-      .first()
-      .text()
-      .trim()
-      .replace(/[^0-9.,]/g, '');
-    
-    return priceText ? parseFloat(priceText.replace(',', '.')) : undefined;
-  }
+    try {
+      await page.setUserAgent(this.getRandomUserAgent());
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-  private extractDescription($: cheerio.CheerioAPI): string | undefined {
-    return $('[itemprop="description"], .description, div[class*="description"]')
-      .first()
-      .text()
-      .trim();
-  }
+      const html = await page.content();
+      const $ = cheerio.load(html);
 
-  private extractSpecifications($: cheerio.CheerioAPI): Record<string, string> {
-    const specs: Record<string, string> = {};
-    
-    // Suche nach Produktspezifikationen in verschiedenen Formaten
-    $('table[class*="specification"], dl[class*="specification"]').each((_, element) => {
-      $(element).find('tr, dt').each((_, row) => {
-        const key = $(row).find('th, dt').text().trim();
-        const value = $(row).find('td, dd').text().trim();
-        if (key && value) specs[key] = value;
+      // Extrahiere die benötigten Daten aus dem HTML
+      const extractedData = this.extractData($);
+
+      // Speichere die extrahierten Daten in der Datenbank
+      await this.prisma.extractedData.create({
+        data: {
+          productId,
+          productUrlId,
+          url,
+          data: extractedData,
+        },
       });
-    });
 
-    return specs;
+      logger.info(`Successfully analyzed and saved data for URL: ${url}`);
+    } catch (error) {
+      logger.error(`Error analyzing URL ${url} for product ID ${productId}:`, error);
+    } finally {
+      await browser.close();
+    }
+  }
+
+  private extractData($: cheerio.CheerioAPI): any {
+    // Implementiere die Logik zur Extraktion der benötigten Daten aus dem HTML
+    // Beispiel:
+    const title = $('title').text();
+    const description = $('meta[name="description"]').attr('content');
+    // Füge weitere Extraktionslogik hinzu
+
+    return { title, description };
   }
 }

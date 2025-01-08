@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { Container } from 'typedi';
-import { UrlAnalyzerService } from '@services/urlAnalyzer.service';
+import { urlAnalyzerService } from '@services/urlAnalyzer.service';
 
-export class UrlAnalyzerController {
-  public urlAnalyzerService = Container.get(UrlAnalyzerService);
+export class urlAnalyzerController {
+  public urlAnalyzerService = Container.get(urlAnalyzerService);
 
-  public analyzeProductUrls = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public analyzeProductUrlsById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { productId } = req.params;
-      const analysisResults = await this.urlAnalyzerService.analyzeUrls(parseInt(productId));
-      res.status(200).json(analysisResults);
+      const { id } = req.params;
+      await this.urlAnalyzerService.analyzeProductUrlsById(parseInt(id, 10));
+      res.status(200).json({ message: 'Product URLs analyzed successfully' });
     } catch (error) {
       next(error);
     }

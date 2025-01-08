@@ -39,6 +39,7 @@
     "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "puppeteer": "^23.11.1",
     "reflect-metadata": "^0.2.2",
     "shopware-api-client": "^1.6.0",
     "swagger-jsdoc": "^6.2.8",
